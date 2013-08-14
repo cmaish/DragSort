@@ -335,7 +335,7 @@
 				//returns the index of the list item the mouse is over
 				findPos: function(x, y) {
 					for (var i = 0; i < this.pos.length; i++) {
-						if (this.pos[i].left < x && this.pos[i].right > x && this.pos[i].top < y && this.pos[i].bottom > y)
+						if (this.pos[i].top < y && this.pos[i].bottom > y && (opts.sortOnAnyXAxis || this.pos[i].left < x && this.pos[i].right > x))
 							return i;
 					}
 					return -1;
@@ -380,7 +380,8 @@
 		dragBetween: false,
 		placeHolderTemplate: "",
 		scrollContainer: window,
-		scrollSpeed: 5
+		scrollSpeed: 5,
+		sortOnAnyXAxis: false
 	};
 
 })(jQuery);
