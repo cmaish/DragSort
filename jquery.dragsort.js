@@ -1,8 +1,3 @@
-// jQuery List DragSort v0.5.1-cmaish
-// Website: http://dragsort.codeplex.com/
-// License: http://dragsort.codeplex.com/license
-// This version from: https://github.com/cmaish/dragsort
-
 (function($) {
 
 	$.fn.dragsort = function(options) {
@@ -56,7 +51,24 @@
 				},
 
 				styleDragHandlers: function(cursor) {
-					this.getItems().map(function() { return $(this).is(opts.dragSelector) ? this : $(this).find(opts.dragSelector).get(); }).css("cursor", cursor ? "pointer" : "");
+					this.getItems().map(function() { return $(this).is(opts.dragSelector) ? this : $(this).find(opts.dragSelector).get(); });
+				},
+
+				animateGrab: function(action) {
+					if (!opts.grabOptions) return;
+					var $draggedItem = $(this);
+					var $draggedItemSelector = opts.grabOptions.draggedItemSelector ? $draggedItem.find(opts.grabOptions.draggedItemSelector) : $draggedItem;
+					if (action === 'grab') {
+						if (opts.grabOptions.draggedItemClass)
+							$draggedItemSelector.addClass(opts.grabOptions.draggedItemClass);
+						if (opts.grabOptions.clickAnimation === 'shiftRight')
+							$draggedItem.css({left: 10});
+					} else if (action === 'drop') {
+						if(opts.grabOptions.draggedItemClass)
+							$draggedItemSelector.removeClass(opts.grabOptions.draggedItemClass);
+						if (opts.grabOptions.clickAnimation === 'shiftRight')
+							$draggedItem.css({left: 0});
+					}
 				},
 
 				grabItem: function(e) {
@@ -81,13 +93,15 @@
 					$(dragHandle).attr("data-cursor", $(dragHandle).css("cursor"));
 					$(dragHandle).css("cursor", "move");
 
+					list.animateGrab.call(item, 'grab');
+
 					//on mousedown wait for movement of mouse before triggering dragsort script (dragStart) to allow clicking of hyperlinks to work
 					var listElem = this;
 					var trigger = function() {
 						list.dragStart.call(listElem, e);
 						$(list.container).unbind("mousemove", trigger);
 					};
-					$(list.container).mousemove(trigger).mouseup(function() { $(list.container).unbind("mousemove", trigger); $(dragHandle).css("cursor", $(dragHandle).attr("data-cursor")); });
+					$(list.container).mousemove(trigger).mouseup(function() { list.animateGrab.call(item, 'drop'); $(list.container).unbind("mousemove", trigger); $(dragHandle).css("cursor", $(dragHandle).attr("data-cursor")); });
 				},
 
 				dragStart: function(e) {
@@ -96,11 +110,11 @@
 
 					list = lists[$(this).attr("data-listidx")];
 					list.draggedItem = $(e.target).closest("[data-listidx] > " + opts.tagName)
-					
+
 					//raise event
 					if (opts.dragStart.apply(list.draggedItem) === false) {
-					    list.draggedItem = null;
-					    return;
+						list.draggedItem = null;
+						return;
 					}
 
 					//record current position so on dragend we know if the dragged item changed position or not, not using getItems to allow dragsort to restore dragged item to original location in relation to fixed items
@@ -142,7 +156,7 @@
 					//style draggedItem while dragging
 					var orig = list.draggedItem.attr("style");
 					list.draggedItem.attr("data-origstyle", orig ? orig : "");
-					list.draggedItem.css({ position: "absolute", opacity: 0.8, "z-index": 999, height: h, width: w });
+					list.draggedItem.css({ position: "absolute", opacity: 1.0, "z-index": 999, height: h, width: w });
 
 					//auto-scroll setup
 					list.scroll = { moveX: 0, moveY: 0, maxX: $(document).width() - $(window).width(), maxY: $(document).height() - $(window).height() };
@@ -179,7 +193,7 @@
 				},
 
 				//set position of draggedItem
-				setPos: function(x, y) { 
+				setPos: function(x, y) {
 					//remove mouse offset so mouse cursor remains in same place on draggedItem instead of top left corner
 					var top = y - this.offset.top;
 					var left = x - this.offset.left;
@@ -209,12 +223,17 @@
 						y = Math.max(0, y - cont.height() - offset.top) + Math.min(0, y - offset.top);
 						x = Math.max(0, x - cont.width() - offset.left) + Math.min(0, x - offset.left);
 					}
-					
+
 					list.scroll.moveX = x == 0 ? 0 : x * opts.scrollSpeed / Math.abs(x);
 					list.scroll.moveY = y == 0 ? 0 : y * opts.scrollSpeed / Math.abs(y);
 
+					//modify draggedItem position based on grabOptions
+					if (opts.grabOptions.clickAnimation === 'shiftRight') {
+						left += 10;
+					}
+
 					//move draggedItem to new mouse cursor location
-					this.draggedItem.css({ top: top, left: left });
+					this.draggedItem.css({ top: top, left: left});
 				},
 
 				//if scroll container is a div allow mouse wheel to scroll div instead of window when mouse is hovering over
@@ -278,6 +297,7 @@
 								$(lists[pos[0]].container).append(list.draggedItem);
 						}
 					list.draggedItem.removeAttr("data-origpos");
+					list.animateGrab.call(list.draggedItem, 'drop');
 
 					list.draggedItem = null;
 					$(document).unbind("mousemove", list.swapItems);
@@ -355,9 +375,9 @@
 							if (opts.tagName == "td")
 								$(opts.placeHolderTemplate).attr("data-droptarget", true).appendTo(this.container);
 							else
-								//list.placeHolderItem.clone().removeAttr("data-placeholder") crashes in IE7 and jquery 1.5.1 (doesn't in jquery 1.4.2 or IE8)
+							//list.placeHolderItem.clone().removeAttr("data-placeholder") crashes in IE7 and jquery 1.5.1 (doesn't in jquery 1.4.2 or IE8)
 								$(this.container).append(list.placeHolderItem.removeAttr("data-placeholder").clone().attr("data-droptarget", true));
-							
+
 							list.placeHolderItem.attr("data-placeholder", true);
 						}
 					});
@@ -381,6 +401,7 @@
 		placeHolderTemplate: "",
 		scrollContainer: window,
 		scrollSpeed: 5,
+		grabOptions: false,
 		sortOnAnyXAxis: false
 	};
 
