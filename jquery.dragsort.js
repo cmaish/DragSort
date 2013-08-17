@@ -1,3 +1,8 @@
+// jQuery List DragSort v0.5.1-jeremy-dimasuay
+// Website: http://dragsort.codeplex.com/
+// License: http://dragsort.codeplex.com/license
+// This version from: https://github.com/jeremy-dimasuay/dragsort
+
 (function($) {
 
 	$.fn.dragsort = function(options) {
